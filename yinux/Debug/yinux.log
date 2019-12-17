@@ -1,0 +1,6 @@
+﻿  obj.cpp
+  yinux.cpp
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\yinux.cpp(2): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
+  正在生成代码...
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(220): warning C4715: “yinux::login”: 不是所有的控件路径都返回值
+  yinux.vcxproj -> C:\Users\ying\Desktop\homework\操作系统\课程设计\yinux\Debug\yinux.exe

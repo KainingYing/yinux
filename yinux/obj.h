@@ -9,15 +9,15 @@ class superblock
 public:
 	superblock();
 
-	unsigned short inodeNum; //inode的总数
-	unsigned short inodeFree;//inode的空闲数
-	unsigned short inodeSize;//inode的大小
+	int inodeNum; //inode的总数
+	int inodeFree;//inode的空闲数
+	int inodeSize;//inode的大小
 	bool inodeBit[128]; //inode的空闲
-	unsigned short blockNum;//block的数量
-	unsigned short blockFree;//block的空闲数量
-	unsigned short blockSize;//block的大小
-	unsigned short currentStack[51];//    stack
-	unsigned short userNum;   //the num of user
+	int blockNum;//block的数量
+	int blockFree;//block的空闲数量
+	int blockSize;//block的大小
+	int currentStack[51];//    stack
+	int userNum;   //the num of user
 	
 
 };
@@ -27,16 +27,16 @@ class inode
 public:
 
 
-	unsigned short inodeNum;          //inode号
-	unsigned short dirSize;          //文件/目录大小
-	unsigned short dirConnect;  //文件链接数
-	unsigned short dirAddr[4];  //直接寻址
-	unsigned short dirAddr1;  //一级间接寻址
-	unsigned short dirAddr2;	//二级间接寻址
-	unsigned short dirOwner;//文件拥有者ID
-	unsigned short dirGroup;//belongs to which group
-	unsigned short dirMode;
-	unsigned short dirPermission;  //file/directory permission
+	int inodeNum;          //inode号
+	int dirSize;          //文件/目录大小
+	int dirConnect;  //文件链接数
+	int dirAddr[4];  //直接寻址
+	int dirAddr1;  //一级间接寻址
+	int dirAddr2;	//二级间接寻址
+	int dirOwner;//文件拥有者ID
+	char dirGroup[6];//belongs to which group
+	int dirMode;
+	int dirPermission;  //file/directory permission
 	char dirTime[64];//latest modified time
 
 
@@ -48,12 +48,12 @@ public:
 
 
 	char fname[10];//directory or file name
-	unsigned short index;//inode num
+	int index;//inode num
 	bool isdir;//whether directory  1=dir    0=file
 	string content;//directory is empty
-	unsigned short parent;//parent's inode num
-	unsigned short firstChild;//first child's inode num(file is NULL)
-	unsigned short nextSibling;	//next brother directory or file
+	int parent;//parent's inode num
+	int firstChild;//first child's inode num(file is NULL)
+	int nextSibling;	//next brother directory or file
 
 };
 
@@ -64,11 +64,11 @@ class user
 
 
 public:
-	unsigned short userId;//0=admin 1,2,3,4,5,6.。。9=guest
+	int userId;//0=admin 1,2,3,4,5,6.。。9=guest
 	char userName[6];
 	char password[6];
 	char group[6];
-	unsigned short umask[3];
+	int umask[3];
 
 };
 
@@ -84,13 +84,26 @@ public:
 	bool format();//format the filedisk
 	bool readDisk();//read the filedisk
 	bool login();//login function
+	void kernal();//the most important part of linux
 
 
-	void allocateSpace(unsigned short inodeNum, directory * dir);//allocate space to new file or directory
-	inode* readInode(unsigned short inodeNum);//read a inode form disk
-	void writeInode(unsigned short inodeNum, inode* newInode);//write a inode into disk
-	void writeDirectory(unsigned short inodeNum, directory* dir);//write directory into disk
-	directory* readDirectory(unsigned short inodeNum);//read directory into disk
+	void pwd(directory* dir);
+	void passwd(user* User);
+	void ls(directory* dir);
+	void mkdir(string filename);//create the new directory
+	void rmdir(string filename);//delete the directory
+	void touch(string filename);// create the new file
+
+
+
+	int findBrotherDirectory(int inodeNum);
+	directory* createDirectory(int inodeNum,char* filename,bool flag);
+	int allocateInode();
+	void allocateSpace(int inodeNum, directory * dir);//allocate space to new file or directory
+	inode* readInode(int inodeNum);//read a inode form disk
+	void writeInode(int inodeNum, inode* newInode);//write a inode into disk
+	void writeDirectory(int inodeNum, directory* dir);//write directory into disk
+	directory* readDirectory(int inodeNum);//read directory into disk
 	
 	FILE* file;
 
@@ -100,14 +113,14 @@ public:
 	
 	superblock Superblock;
 	directory* currDirectory;//Current directory or file
-	unsigned short stackPtr;//ponit to which block group
+	int stackPtr;//ponit to which block group
 
 
 
 
 
 
-
+	//ying@ying-TM1701:~$
 
 
 };

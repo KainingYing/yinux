@@ -683,3 +683,4 @@ superblock::superblock()
 	blockNum = BLOCK_NUM+INODE_NUM*INODE_SIZE/BLOCK_SIZE+2;//2 means one empty and one superblock
 	blockFree = BLOCK_NUM;
 }
+//

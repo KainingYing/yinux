@@ -1,4 +1,4 @@
 ﻿  obj.cpp
-c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(431): warning C4806: “==”: 不安全操作: 从类型“bool”提升到类型“int”的值不能等于给定的常量
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(447): warning C4806: “==”: 不安全操作: 从类型“bool”提升到类型“int”的值不能等于给定的常量
 c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(274): warning C4715: “yinux::login”: 不是所有的控件路径都返回值
   yinux.vcxproj -> C:\Users\ying\Desktop\homework\操作系统\课程设计\yinux\Debug\yinux.exe

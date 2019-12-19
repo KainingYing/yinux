@@ -95,6 +95,8 @@ public:
 	void rm(string filename);//delete the file
 	void touch(string filename);// create the new file
 	void cd(string filename);//change the directory path
+	void umask(int number);
+	void cat(string filename);
 
 	void releaseSpace(int inodeNum);
 	int findPreviousDirectory(int inodeNum);
@@ -108,7 +110,9 @@ public:
 	directory* readDirectory(int inodeNum);//read directory into disk
 	void writeSuperblock();//update the Superblock
 	int findDirectory(const char* filename);//finding correspond directory based on filename
-	
+	void allocateEnoughSpace(directory* dir);//the most important part    to the best of my knowledge	
+	int findAvailableBlock();//a api to find proper BLOCK
+	void writeEnoughDirectory(directory* dir);
 	FILE* file;
 
 

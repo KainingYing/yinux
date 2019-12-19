@@ -279,7 +279,9 @@ void yinux::kernal()
 	{
 
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
-		printf("%s@yinux-ZJUT201706061420:%s$", User.userName, currDirectory->fname);
+		printf("%s@yinux-ZJUT201706061420:", User.userName);
+		pwd(currDirectory);
+		cout << "$ ";
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 		/*cout << "僕らの手には何もないけど、" << endl;*/
 		string command;
@@ -305,6 +307,18 @@ void yinux::kernal()
 			cout << "clear      清空控制台" << endl;
 			cout << "exit       保存并且退出" << endl;
 			cout << "cd         切换路径" << endl;
+		}
+		else if (command == "umask")
+		{
+			int number;
+			cin >> number;
+			umask(number);
+		}
+		else if (command == "cat")
+		{
+			string filename;
+			cin >> filename;
+			cat(filename);
 		}
 		else if (command == "pwd")
 		{
@@ -380,15 +394,17 @@ void yinux::kernal()
 
 void yinux::pwd(directory * dir)
 {
-	if (dir->parent = -1)
+	if (dir->parent == -1)
 	{
 		cout << "/";//这说明是到了根目录
 		return;
 	}
 	else
 	{
-		dir = readDirectory(dir->parent);//到父母节点在进行遍历
-		pwd(dir);
+		//到父母节点在进行遍历
+		pwd(readDirectory(dir->parent));
+		if (dir->parent != 0)
+			cout << '/';
 		cout << dir->fname;
 	}
 }
@@ -582,7 +598,7 @@ void yinux::touch(string Filename)
 void yinux::cd(string filename)
 {
 	const char* path = filename.c_str();
-	if (path[0] == '/')//relative path
+	if (path[0] != '/')//relative path
 	{
 		int inodeNum = findDirectory(path);
 		if (readDirectory(inodeNum)->isdir != 1) 
@@ -594,9 +610,79 @@ void yinux::cd(string filename)
 	}
 	else//absolute path  a little difficult    maybe
 	{
-
+		if (strcmp("/", path) == 0)
+		{
+			currDirectory = readDirectory(0);
+		}
+		else
+		{
+			currDirectory = readDirectory(0);
+			char *PATH = new char[25];
+			strcpy(PATH, path);
+			char *result = NULL;
+			char delims[] = "/";
+			result = strtok(PATH, delims);
+			while (result != NULL)
+			{
+				int inodeNum = findDirectory(result);
+				if (readDirectory(inodeNum)->isdir != 1)
+				{
+					printf("%s is not valid!\n", PATH);
+					return;
+				}
+				currDirectory = readDirectory(inodeNum);
+				result = strtok(PATH, delims);
+			}
+		}
 	}
 	
+}
+
+void yinux::umask(int number)
+{
+	;
+}
+
+void yinux::cat(string filename)
+{
+	const char* Filename = filename.c_str();
+	bool flag = false;
+	if (currDirectory->firstChild == -1)
+	{
+		printf("No file named %s.\n", Filename);
+		return;
+	}
+	directory* dir_temp = readDirectory(currDirectory->firstChild);
+	int num = dir_temp->index;
+	while (num != -1)
+	{
+		dir_temp = readDirectory(num);
+		if (strcmp(dir_temp->fname, Filename) == 0 && dir_temp->isdir == false)
+		{
+			flag = true;
+			break;
+		}
+		num = dir_temp->nextSibling;
+	}
+	if (flag)//Determine if found
+	{
+		if (dir_temp->isdir != 1)
+		{
+			cout << dir_temp->content << endl;;
+		}
+		else
+		{
+			printf("%s is a directory.\n", Filename);
+			return;
+		}
+		
+
+	}
+	else
+	{
+		printf("No 11file named %s.\n", Filename);
+		return;
+	}
 }
 
 void yinux::releaseSpace(int inodeNum)
@@ -608,6 +694,8 @@ void yinux::releaseSpace(int inodeNum)
 	{
 		int stack[51];
 		//search for enough
+		fseek(file, DATA_START + stackPtr * 50 * BLOCK_SIZE, 0);
+		fwrite(Superblock.currentStack, sizeof(Superblock.currentStack), 1, file);
 		int t = -1;
 		for (int i = 0; i <= BLOCK_NUM / 50; i++)
 		{
@@ -615,6 +703,7 @@ void yinux::releaseSpace(int inodeNum)
 			fread(stack, sizeof(stack), 1, file);
 			if (stack[50] != 49)
 			{
+				stackPtr = i;
 				t = i;
 				break;
 			}
@@ -770,6 +859,7 @@ void yinux::allocateSpace(int inodeNum, directory * dir)
 			fread(stack, sizeof(stack), 1, file);
 			if (stack[50] != 0)
 			{
+				stackPtr = i;
 				for (int i = 0; i <= 50; i++)
 					Superblock.currentStack[i] = stack[i];
 				break;
@@ -906,6 +996,133 @@ int yinux::findDirectory(const char * filename)
 		return inum;
 	}
 	
+}
+
+void yinux::allocateEnoughSpace(directory * dir)
+{
+	inode* inode_temp = readInode(dir->index);
+	if (inode_temp->dirSize <= 4 * BLOCK_SIZE)//ONLY UES DIRECT BLOCK
+	{
+		int t = inode_temp->dirSize / BLOCK_NUM + 1;
+		for (int i = 0; i < t; i++)
+		{
+			inode_temp->dirAddr[i] = findAvailableBlock();
+		}
+	}
+	else if (inode_temp->dirSize <= (16 + 4)*BLOCK_SIZE)//use the Once indirectly
+	{
+		int t = (inode_temp->dirSize - 4 * BLOCK_NUM) / BLOCK_SIZE + 1;
+		int a[16];
+		for (int i = 0; i < 16; i++)
+		{
+			a[i] = -1;
+		}
+		for (int i = 0; i < t; i++)
+		{
+			a[i] = findAvailableBlock();
+		}
+		inode_temp->dirAddr1 = findAvailableBlock();
+		fseek(file, DATA_START + inode_temp->dirAddr1*BLOCK_SIZE, 0);
+		fwrite(a, sizeof(a), 1, file);
+	}
+	else if (inode_temp->dirSize <= (16 + 4 + 16 * 16)*BLOCK_SIZE)//use the Two indirect
+	{
+		;
+	}
+	writeInode(dir->index, inode_temp);
+	
+}
+
+int yinux::findAvailableBlock()
+{
+	if (Superblock.blockFree == 0)
+	{
+		cout << "Not enough storage space" << endl;
+		return -1;
+	}
+	if (Superblock.currentStack[50] != 0)
+	{
+		Superblock.blockFree--;
+		int t=Superblock.currentStack[Superblock.currentStack[50]--];
+		writeSuperblock();
+		return t;
+
+	}
+	else
+	{
+		int stack[51];
+		fseek(file, DATA_START + stackPtr * 50 * BLOCK_SIZE, 0);
+		fwrite(Superblock.currentStack, sizeof(Superblock.currentStack), 1, file);
+
+		for (int i = 0; i < BLOCK_NUM / 50 + 1; i++)
+		{
+			fseek(file, DATA_START + i * 50 * BLOCK_SIZE, 0);
+			fread(stack, sizeof(stack), 1, file);
+			if (stack[50] != 0)
+			{
+				stackPtr = i;
+				for (int i = 0; i <= 50; i++)
+					Superblock.currentStack[i] = stack[i];
+				break;
+			}
+		}
+		Superblock.blockFree--;
+		int t = Superblock.currentStack[Superblock.currentStack[50]--];
+		writeSuperblock();
+		return t;
+	}
+
+}
+
+void yinux::writeEnoughDirectory(directory * dir)
+{
+	inode* inode_temp = readInode(dir->index);
+	//no consider one block cant store
+	fseek(file, DATA_START + inode_temp->dirAddr[0] * BLOCK_SIZE, 0); //need attenstion
+	fwrite(dir->fname, sizeof(char), 10, file);
+	fwrite(&(dir->index), sizeof(int), 1, file);
+	fwrite(&(dir->isdir), sizeof(bool), 1, file);
+	fwrite(&(dir->parent), sizeof(int), 1, file);
+	fwrite(&(dir->firstChild), sizeof(int), 1, file);
+	fwrite(&(dir->nextSibling), sizeof(int), 1, file);
+	if (!dir->isdir)//dir is not directory ,then store its content
+	{
+		int size = inode_temp->dirSize - 24; //24 represent dir size without content
+		char* a = new char[size];
+		for (int i = 0; i < inode_temp->dirSize - 24; i++)
+			a[i] = dir->content[i];
+		if (inode_temp->dirSize <= 4 * BLOCK_SIZE)//ONLY UES DIRECT BLOCK
+		{
+			int t = inode_temp->dirSize / BLOCK_NUM + 1;
+			for (int i = 0; i < t; i++)
+			{
+				fseek(file, DATA_START + BLOCK_SIZE * inode_temp->dirAddr[i], 0);
+				fwrite(a + i*BLOCK_SIZE,sizeof(char),size-i*BLOCK_SIZE<=512?size - i * BLOCK_SIZE:512,file);
+			}
+		}
+		else if (inode_temp->dirSize <= (16 + 4)*BLOCK_SIZE)//use the Once indirectly
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				fseek(file, DATA_START + BLOCK_SIZE * inode_temp->dirAddr[i], 0);
+				fwrite(a + i * BLOCK_SIZE, sizeof(char), size - i * BLOCK_SIZE <= 512 ? size - i * BLOCK_SIZE : 512, file);
+			}
+			int *b = new int[16];
+			fseek(file,DATA_START+BLOCK_SIZE*inode_temp->dirAddr1,0);
+			fread(b, sizeof(b), 16, file);
+			for (int i = 0; i < 16 && b[i] != -1; i++)
+			{
+				fseek(file, DATA_START + BLOCK_SIZE * b[i], 0);
+				fwrite(a + i * BLOCK_SIZE, sizeof(char), size - i * BLOCK_SIZE <= 512 ? size - i * BLOCK_SIZE : 512, file);
+			}
+		}
+		else if (inode_temp->dirSize <= (16 + 4 + 16 * 16)*BLOCK_SIZE)//use the Two indirect
+		{
+			;
+		}
+
+		delete[]a;
+	}
 }
 
 superblock::superblock()

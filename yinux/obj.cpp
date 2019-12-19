@@ -134,6 +134,9 @@ bool yinux::format()
 		writeDirectory(0,&droot_tmp);
 		//cout << Superblock.currentStack[50] << endl;
 		
+		/*directory* a = readDirectory(0);
+		cout << a->index << endl;*/
+
 		//step4 end
 
 		//step5 create and store usr file
@@ -156,11 +159,18 @@ bool yinux::format()
 		fseek(file, DATA_START + 2*BLOCK_SIZE, 0);
 		fwrite(USER, sizeof(user), 10, file);
 
+
+
 		Superblock.userNum = 2;//a admin and a guest
 		Superblock.blockFree--;
 		Superblock.currentStack[50]--;
 		fseek(file, BLOCK_SIZE, 0);
 		fwrite(&Superblock, sizeof(superblock), 1, file);
+
+		fseek(file, BLOCK_SIZE, 0);
+		superblock* a = new superblock();
+		fread(a, sizeof(superblock), 1, file);
+		cout << 1;
 
 
 
@@ -203,7 +213,7 @@ bool yinux::readDisk()
 		inode* inode_root = readInode(0);
 		currDirectory = readDirectory(0);
 		//step2 end
-
+		;
 
 	/*	a = readDirectory(0);
 		cout << a->index << endl;*/
@@ -218,16 +228,17 @@ bool yinux::readDisk()
 bool yinux::login()
 {
 	int m = 1;
+	cout << "Try not to become a man of success but rather try to become a man of value. -- A. Einstein" << endl;
 	while (m)
 	{
 		int flag = 0;
 		int t;
-		cout << "Try not to become a man of success but rather try to become a man of value. -- A. Einstein" << endl;
+		//cout << "Try not to become a man of success but rather try to become a man of value. -- A. Einstein" << endl;
 		cout << "Please enter username:";
 		char username[6]="admin", password[6]="admin";
-		cin >> username;
+		/*cin >> username;*/
 		cout << "Please enter correspond password:";
-		cin >> password;
+		/*cin >> password;*/
 
 		user* USER = new user[10];
 		fseek(file, DATA_START + 2*BLOCK_SIZE, 0);
@@ -293,6 +304,7 @@ void yinux::kernal()
 			cout << "lines      输出一句经典台词" << endl;
 			cout << "clear      清空控制台" << endl;
 			cout << "exit       保存并且退出" << endl;
+			cout << "cd         切换路径" << endl;
 		}
 		else if (command == "pwd")
 		{
@@ -313,6 +325,24 @@ void yinux::kernal()
 			cin >> parm;
 			mkdir(parm);
 		}
+		else if (command == "touch")
+		{
+			string parm;
+			cin >> parm;
+			touch(parm);
+		}
+		else if (command == "rm")
+		{
+			string parm;
+			cin >> parm;
+			rm(parm);
+		}
+		else if (command == "rmdir")
+		{
+			string parm;
+			cin >> parm;
+			rmdir(parm);
+		}
 		else if (command == "lines")
 		{
 			cout << motto[rand() % 10] << endl;
@@ -325,7 +355,7 @@ void yinux::kernal()
 		{
 			fseek(file, BLOCK_SIZE, 0);
 			fwrite(&Superblock, sizeof(superblock), 1, file);//store the superblock
-			fseek(file, DATA_START + BLOCK_SIZE + sizeof(user)*User.userId, 0);
+			fseek(file, DATA_START + 2 * BLOCK_SIZE + sizeof(user)*User.userId, 0);
 			fwrite(&User, sizeof(user), 1, file);
 			exit(0);
 		}
@@ -334,6 +364,12 @@ void yinux::kernal()
 			time_t t;
 			time(&t);
 			printf("%s\n", ctime(&t));
+		}
+		else if (command == "cd")
+		{
+			string parm;
+			cin >> parm;
+			cd(parm);
 		}
 		else {
 			cout << "Error!" << command << " is not found!\n";
@@ -403,7 +439,7 @@ void yinux::ls(directory * dir)
 		{
 			return;
 		}
-		dir = readDirectory(dir->firstChild);
+		dir = readDirectory(currDirectory->firstChild);
 		int num = dir->index;
 		int count=0;
 		while (num != -1)
@@ -433,15 +469,181 @@ void yinux::rmdir(string filename)
 	bool flag = false;
 	if (currDirectory->firstChild == -1)
 	{
-		printf("No file named %s.", Filename);
+		printf("No directory named %s.\n", Filename);
 		return;
 	}
 	directory* dir_temp = readDirectory(currDirectory->firstChild);
-	while (strcmp(dir_temp->fname, Filename) == 0)
+	int num = dir_temp->index;
+	while (num!=-1)
 	{
-		
-		
+		dir_temp = readDirectory(num);
+		if (strcmp(dir_temp->fname, Filename)==0 && dir_temp->isdir == true)
+		{
+			flag = true;
+			break;
+		}
+		num = dir_temp->nextSibling;
 	}
+	if (flag)//Determine if found
+	{
+		//two case :1、dir_temp 's parent has only one child
+		//2 is a list
+		// problem is not big
+
+
+		//step1   modify the correspond brother or parent
+		if (readDirectory(dir_temp->parent)->firstChild == dir_temp->index)//case 1
+		{
+			currDirectory->firstChild = dir_temp->nextSibling;
+			writeDirectory(0, currDirectory);
+		}
+		else//case 2
+		{
+			int t = findPreviousDirectory(dir_temp->index);
+			directory* dirdir = readDirectory(t);
+			dirdir->nextSibling=dir_temp->nextSibling;
+			writeDirectory(t, dirdir);
+		}
+
+
+		//step2 release BLOCK
+		releaseSpace(dir_temp->index);
+
+	}
+	else
+	{
+		printf("No directory named %s.\n", Filename);
+		return;
+	}
+}
+
+void yinux::rm(string filename)
+{
+	const char* Filename = filename.c_str();
+	bool flag = false;
+	if (currDirectory->firstChild == -1)
+	{
+		printf("No file named %s.\n", Filename);
+		return;
+	}
+	directory* dir_temp = readDirectory(currDirectory->firstChild);
+	int num = dir_temp->index;
+	while (num != -1)
+	{
+		dir_temp = readDirectory(num);
+		if (strcmp(dir_temp->fname, Filename) == 0&&dir_temp->isdir!=true)
+		{
+			flag = true;
+			break;
+		}
+		num = dir_temp->nextSibling;
+	}
+	if (flag)//Determine if found
+	{
+		//two case :1、dir_temp 's parent has only one child
+		//2 is a list
+		// problem is not big
+
+
+		//step1   modify the correspond brother or parent
+		if (readDirectory(dir_temp->parent)->firstChild == dir_temp->index)//case 1
+		{
+			currDirectory->firstChild = dir_temp->nextSibling;
+			writeDirectory(0, currDirectory);
+		}
+		else//case 2
+		{
+			int t = findPreviousDirectory(dir_temp->index);
+			directory* dirdir = readDirectory(t);
+			dirdir->nextSibling = dir_temp->nextSibling;
+			writeDirectory(t, dirdir);
+		}
+
+
+		//step2 release BLOCK
+		releaseSpace(dir_temp->index);
+
+	}
+	else
+	{
+		printf("No file named %s.\n", Filename);
+		return;
+	}
+}
+
+void yinux::touch(string Filename)
+{
+	char* filename = new char[20];
+	strcpy(filename, Filename.c_str());
+	int t = allocateInode();
+	createDirectory(t, filename, false);
+}
+
+void yinux::cd(string filename)
+{
+	const char* path = filename.c_str();
+	if (path[0] == '/')//relative path
+	{
+		int inodeNum = findDirectory(path);
+		if (readDirectory(inodeNum)->isdir != 1) 
+		{
+			printf("%s is not a directory,is a file!\n", path);
+			return;
+		}
+		currDirectory = readDirectory(inodeNum);
+	}
+	else//absolute path  a little difficult    maybe
+	{
+
+	}
+	
+}
+
+void yinux::releaseSpace(int inodeNum)
+{
+	//no consider of size>512
+	inode* inode_temp = readInode(inodeNum);
+	//release the block 
+	if (Superblock.currentStack[50] = 49)
+	{
+		int stack[51];
+		//search for enough
+		int t = -1;
+		for (int i = 0; i <= BLOCK_NUM / 50; i++)
+		{
+			fseek(file, DATA_START + i * 50 * BLOCK_SIZE, 0);
+			fread(stack, sizeof(stack), 1, file);
+			if (stack[50] != 49)
+			{
+				t = i;
+				break;
+			}
+		}
+		for (int i = 0; i < 51; i++)
+			Superblock.currentStack[i] = stack[i];
+		writeSuperblock();
+	}
+
+
+	Superblock.currentStack[50]++;
+	Superblock.blockFree++;
+	Superblock.currentStack[Superblock.currentStack[50]] = inode_temp->dirAddr[0];
+	//release the inode
+	Superblock.inodeFree++;
+	Superblock.inodeBit[inodeNum] = 0;
+	//end
+	writeSuperblock();
+
+}
+
+int yinux::findPreviousDirectory(int inodeNum)//find previous directory , but no consider exist or not
+{
+	int previousInodeNum = currDirectory->firstChild;
+	while (readDirectory(previousInodeNum)->nextSibling != inodeNum)
+	{
+		previousInodeNum = readDirectory(readDirectory(previousInodeNum)->nextSibling)->index;
+	}
+	return previousInodeNum;
 }
 
 int yinux::findBrotherDirectory(int inodeNum)
@@ -468,6 +670,7 @@ directory* yinux::createDirectory(int inodeNum,char* filename,bool flag)
 		if (currDirectory->firstChild == -1)//parent has no child
 		{
 			currDirectory->firstChild = dir_temp->index;
+
 		}
 		else
 		{
@@ -673,6 +876,38 @@ directory* yinux::readDirectory(int inodeNum)
 
 }
 
+void yinux::writeSuperblock()
+{
+	fseek(file, BLOCK_SIZE, 0);
+	fwrite(&Superblock, sizeof(superblock), 1, file);
+}
+
+int yinux::findDirectory(const char * filename)
+{
+	if (currDirectory->firstChild == -1)
+	{
+		return -1;//no find
+	}
+	else
+	{
+		int inum = -1;
+		directory* dir_temp = readDirectory(currDirectory->firstChild);
+		int num = dir_temp->index;
+		while (num != -1)
+		{
+			dir_temp = readDirectory(num);
+			if (strcmp(dir_temp->fname, filename) == 0)
+			{
+				inum = dir_temp->index;
+				break;
+			}
+			num = dir_temp->nextSibling;
+		}
+		return inum;
+	}
+	
+}
+
 superblock::superblock()
 {
 	inodeNum = INODE_NUM;
@@ -683,4 +918,3 @@ superblock::superblock()
 	blockNum = BLOCK_NUM+INODE_NUM*INODE_SIZE/BLOCK_SIZE+2;//2 means one empty and one superblock
 	blockFree = BLOCK_NUM;
 }
-//

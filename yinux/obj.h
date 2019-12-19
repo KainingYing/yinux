@@ -92,10 +92,12 @@ public:
 	void ls(directory* dir);
 	void mkdir(string filename);//create the new directory
 	void rmdir(string filename);//delete the directory
+	void rm(string filename);//delete the file
 	void touch(string filename);// create the new file
+	void cd(string filename);//change the directory path
 
-
-
+	void releaseSpace(int inodeNum);
+	int findPreviousDirectory(int inodeNum);
 	int findBrotherDirectory(int inodeNum);
 	directory* createDirectory(int inodeNum,char* filename,bool flag);
 	int allocateInode();
@@ -104,6 +106,8 @@ public:
 	void writeInode(int inodeNum, inode* newInode);//write a inode into disk
 	void writeDirectory(int inodeNum, directory* dir);//write directory into disk
 	directory* readDirectory(int inodeNum);//read directory into disk
+	void writeSuperblock();//update the Superblock
+	int findDirectory(const char* filename);//finding correspond directory based on filename
 	
 	FILE* file;
 

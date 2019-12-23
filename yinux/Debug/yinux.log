@@ -1,4 +1,10 @@
 ﻿  obj.cpp
-c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(447): warning C4806: “==”: 不安全操作: 从类型“bool”提升到类型“int”的值不能等于给定的常量
-c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(274): warning C4715: “yinux::login”: 不是所有的控件路径都返回值
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(509): warning C4553: “==”: 未使用表达式结果；是否打算使用“=”?
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(527): warning C4101: “inodeNum”: 未引用的局部变量
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(656): warning C4806: “==”: 不安全操作: 从类型“bool”提升到类型“int”的值不能等于给定的常量
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(1515): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(1528): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(1648): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(1711): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\ying\desktop\homework\操作系统\课程设计\yinux\yinux\obj.cpp(252): warning C4715: “yinux::login”: 不是所有的控件路径都返回值
   yinux.vcxproj -> C:\Users\ying\Desktop\homework\操作系统\课程设计\yinux\Debug\yinux.exe
